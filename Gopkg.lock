@@ -11,14 +11,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f5cb7e742fcf167ff7d2ac8ca6ebc7f797a04c98f2daac3de7d4323dbf3dccd7"
-  name = "github.com/banzaicloud/k8s-objectmatcher"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "5288f80397dd1d5c16ee4fcc7062b99322a17ca0"
-
-[[projects]]
-  branch = "master"
   digest = "1:ad4589ec239820ee99eb01c1ad47ebc5f8e02c4f5103a9b210adff9696d89f36"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -352,6 +344,13 @@
   pruneopts = "T"
   revision = "adf5a7427709b9deb95d29d3fa8a2bf9cfd388f1"
   version = "v1.2"
+
+[[projects]]
+  digest = "1:fb927da17c60ac26e19507fec23798871870cf4e431eff5eca17b008cb68bd00"
+  name = "github.com/pepov/k8s-objectmatcher"
+  packages = ["patch"]
+  pruneopts = "T"
+  revision = "0d39a7bf4822ce4378bf9a8deb3b49e224f81c5e"
 
 [[projects]]
   branch = "master"
@@ -744,6 +743,7 @@
     "pkg/util/framer",
     "pkg/util/intstr",
     "pkg/util/json",
+    "pkg/util/jsonmergepatch",
     "pkg/util/mergepatch",
     "pkg/util/naming",
     "pkg/util/net",
@@ -971,7 +971,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/banzaicloud/k8s-objectmatcher",
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/go-logr/logr",
@@ -980,6 +979,7 @@
     "github.com/mholt/caddy/caddyfile",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/pepov/k8s-objectmatcher/patch",
     "github.com/pkg/errors",
     "golang.org/x/net/context",
     "k8s.io/api/admissionregistration/v1beta1",

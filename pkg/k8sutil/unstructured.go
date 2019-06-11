@@ -19,9 +19,9 @@ package k8sutil
 import (
 	"reflect"
 
-	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
 	"github.com/go-logr/logr"
 	"github.com/goph/emperror"
+	patch "github.com/pepov/k8s-objectmatcher/patch"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -61,21 +61,30 @@ func (d *DynamicObject) Reconcile(log logr.Logger, client dynamic.Interface, des
 		return emperror.WrapWith(err, "getting resource failed", "name", d.Name, "kind", desiredType)
 	}
 	if apierrors.IsNotFound(err) && desiredState == DesiredStatePresent {
+		patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 		if _, err := client.Resource(d.Gvr).Namespace(d.Namespace).Create(desired, metav1.CreateOptions{}); err != nil {
 			return emperror.WrapWith(err, "creating resource failed", "name", d.Name, "kind", desiredType)
 		}
 		log.Info("resource created", "kind", d.Gvr.Resource)
+		return nil
 	}
 	if err == nil {
 		if desiredState == DesiredStatePresent {
-			objectsEquals, err := objectmatch.New(log).Match(current, desired)
+			patchResult, err := patch.DefaultPatchMaker.Calculate(current, desired)
 			if err != nil {
 				log.Error(err, "could not match objects", "kind", desiredType)
-			} else if objectsEquals {
+			} else if patchResult.IsEmpty() {
 				log.V(1).Info("resource is in sync")
 				return nil
+			} else {
+				log.V(1).Info("resource diffs",
+					"patch", string(patchResult.Patch),
+					"current", string(patchResult.Current),
+					"modified", string(patchResult.Modified),
+					"original", string(patchResult.Original))
 			}
-
+			// Need to set this before resourceversion is set, as it would constantly change otherwise
+			patch.DefaultAnnotator.SetLastAppliedAnnotation(desired)
 			desired.SetResourceVersion(current.GetResourceVersion())
 			if _, err := client.Resource(d.Gvr).Namespace(d.Namespace).Update(desired, metav1.UpdateOptions{}); err != nil {
 				return emperror.WrapWith(err, "updating resource failed", "name", d.Name, "kind", desiredType)

@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/gofrs/uuid"
 	"github.com/goph/emperror"
+	patch "github.com/pepov/k8s-objectmatcher/patch"
 	"github.com/pkg/errors"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -64,7 +65,6 @@ import (
 	"github.com/banzaicloud/istio-operator/pkg/resources/pilot"
 	"github.com/banzaicloud/istio-operator/pkg/resources/sidecarinjector"
 	"github.com/banzaicloud/istio-operator/pkg/util"
-	objectmatch "github.com/banzaicloud/k8s-objectmatcher"
 )
 
 const finalizerID = "istio-operator.finializer.banzaicloud.io"
@@ -519,9 +519,6 @@ func initWatches(c controller.Controller, scheme *runtime.Scheme, watchCreatedRe
 		return nil
 	}
 
-	// Initialize object matcher
-	objectMatcher := objectmatch.New(logf.NewDelegatingLogger(logf.NullLogger{}))
-
 	// Initialize owner matcher
 	ownerMatcher := k8sutil.NewOwnerReferenceMatcher(&istiov1beta1.Istio{TypeMeta: metav1.TypeMeta{Kind: "Istio", APIVersion: "istio.banzaicloud.io/v1beta1"}}, true, scheme)
 
@@ -557,10 +554,10 @@ func initWatches(c controller.Controller, scheme *runtime.Scheme, watchCreatedRe
 				return true
 			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				objectsEquals, err := objectMatcher.Match(e.ObjectOld, e.ObjectNew)
+				patchResult, err := patch.DefaultPatchMaker.Calculate(e.ObjectOld, e.ObjectNew)
 				if err != nil {
 					logger.Error(err, "could not match objects", "kind", e.ObjectOld.GetObjectKind())
-				} else if objectsEquals {
+				} else if patchResult.IsEmpty() {
 					return false
 				}
 				related, object, err := ownerMatcher.Match(e.ObjectNew)
